@@ -1,0 +1,14 @@
+*.csv
+.idea/
+.ipynb_checkpoints/
+__pycache__/
+checkout.dat
+data/
+full/
+log.txt
+mercury-pos-hgi.txt
+mercury-pos-min.txt
+messenger-d3.tar.gz
+messenger_lmsu_v1.csv.gz
+messenger_lmsu_v2.tar.gz
+venv/
