@@ -11,14 +11,15 @@ from sys import argv, exit
 
 from scipy.optimize import curve_fit
 
-#from pylab import rcParams
+# from pylab import rcParams
 import matplotlib as mp
 import matplotlib.pyplot as plt
-#from matplotlib.dates import DateFormatter
-#import matplotlib.dates as mdates
-#import matplotlib.cm as cm
-#from matplotlib import dates
-#from matplotlib.ticker import AutoMinorLocator, LinearLocator, AutoLocator
+
+# from matplotlib.dates import DateFormatter
+# import matplotlib.dates as mdates
+# import matplotlib.cm as cm
+# from matplotlib import dates
+# from matplotlib.ticker import AutoMinorLocator, LinearLocator, AutoLocator
 
 
 plt.style.use('fivethirtyeight')
@@ -33,17 +34,19 @@ mp.rcParams['figure.figsize'] = (15, 10)
 planet = {
     "Mercury": {
         "R": 2440,
-        "M0": -1.96e02, # xR**3
+        "M0": -1.96e02,  # xR**3
         "x0": 0,
         "y0": 0,
         "z0": 484
     }
 }
 
-R_M = 2440 # km
-M_0 = -1.96e02 * R_M**3 # nT. Alexeev, Belenkaya et al 2010 doi:10.1016/j.icarus.2010.01.024
+R_M = 2440  # km
+M_0 = -1.96e02 * R_M ** 3  # nT. Alexeev, Belenkaya et al 2010 doi:10.1016/j.icarus.2010.01.024
 z_displacement = 484
 
+broken_orbit_indices = [1587, 1589, 1590, 3565, 3686, 26, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 789, 957, 1033, 1740, 3732]
+orbit_index_offset = 12
 
 
 class DataMaster:
@@ -94,14 +97,14 @@ class MessengerMaster(DataMaster):
         ]
 
         data['DATE'] = data.apply(lambda x:
-            datetime.strptime("%d-%03d_%02d:%02d:%02d" % (x.YEAR,
-                                                          x.DAY_OF_YEAR,
-                                                          x.HOUR,
-                                                          x.MINUTE,
-                                                          x.SECOND),
-                              "%Y-%j_%H:%M:%S"),
-            axis=1
-        )
+                                  datetime.strptime("%d-%03d_%02d:%02d:%02d" % (x.YEAR,
+                                                                                x.DAY_OF_YEAR,
+                                                                                x.HOUR,
+                                                                                x.MINUTE,
+                                                                                x.SECOND),
+                                                    "%Y-%j_%H:%M:%S"),
+                                  axis=1
+                                  )
         print("dated", datetime.now())
         data = data.drop(['YEAR', 'DAY_OF_YEAR', 'HOUR', 'MINUTE', 'SECOND', 'NAVG', 'TIME_TAG'], axis=1)
         print("dropped", datetime.now())
@@ -146,7 +149,7 @@ class MessengerMaster(DataMaster):
             stuff_secs = range(0, 60, resolution)
             for i in stuff_secs:
                 tmpdata = data.copy(True)
-                tmpdata["VZ"] += 0.0001*np.random.random()
+                tmpdata["VZ"] += 0.0001 * np.random.random()
                 tmpdata.index = tmpdata.index + pd.DateOffset(seconds=i)
                 interpolations.append(tmpdata)
             data = pd.concat(interpolations)
@@ -184,7 +187,7 @@ class MessengerMaster(DataMaster):
 
     def insert_gaps(self, data):
         payload_columns = ["X_MSO", "Y_MSO", "Z_MSO", "BX_MSO", "BY_MSO", "BZ_MSO"]
-        default_delta = np.timedelta64(self.resolution * 10**9, 'ns')  # 1 minute
+        default_delta = np.timedelta64(self.resolution * 10 ** 9, 'ns')  # 1 minute
         gap_indices = np.where(np.diff(data.index) > default_delta)[0]
         for i in gap_indices:
             for c in payload_columns:
@@ -193,7 +196,7 @@ class MessengerMaster(DataMaster):
     def dipole_field(self, data):
         x, y, z = data.X_MSO, data.Y_MSO, (data.Z_MSO - z_displacement)
         data["RHO_DIPOLE"] = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-        data["PHI_DIPOLE"] = np.arctan(y/x)
+        data["PHI_DIPOLE"] = np.arctan(y / x)
         data["THETA_DIPOLE"] = np.arcsin(z / data.RHO_DIPOLE)
         data["BABS_DIPOLE"] = np.abs(M_0) / data.RHO_DIPOLE ** 4 * np.sqrt(3 * z ** 2 + data.RHO_DIPOLE ** 2)
         psi = 0.0
@@ -214,6 +217,7 @@ class MessengerMaster(DataMaster):
         # https://doi.org/10.1029/2010JA015881
 
         sw_velocity = 350  # km/s
+
         # TODO: this is a crude approximation; investigate ways to improve it
 
         def rotation_matrix(theta):
@@ -291,13 +295,17 @@ class MessengerMaster(DataMaster):
         mask = data[data.EXTREMA == 2].index
         xdata = data[:mask[0]]
         i = 0
-        xdata.to_csv(os.path.join("orbits", "messenger-{:04d}.csv".format(i)))
-        print("Orbit #{} complete".format(i))
+        if i not in broken_orbit_indices:
+            xdata.to_csv(os.path.join("orbitz", "messenger-{:04d}.csv".format(i+orbit_index_offset)))
+            print("Orbit #{} complete".format(i+orbit_index_offset))
+        else:
+            print("Orbit #{} complete".format(i+orbit_index_offset))
+
         for bounds in zip(mask[:-1], mask[1:]):
             i += 1
             diff = bounds[1] - bounds[0]
             if bounds[0] < pd.Timestamp(datetime(2012, 4, 8)):
-                period = timedelta(hours=13) # +1 hr for error tolerance
+                period = timedelta(hours=13)  # +1 hr for error tolerance
             else:
                 period = timedelta(hours=9)
             while diff > timedelta(hours=12, minutes=30):  # +1 hr for error tolerance
@@ -305,8 +313,11 @@ class MessengerMaster(DataMaster):
                 i += 1
                 print(diff, bounds)
             xdata = data[bounds[0]:bounds[1]]
-            xdata.to_csv(os.path.join("orbits", "messenger-{:04d}.csv".format(i)))
-            print("Orbit #{} complete".format(i))
+            if i not in broken_orbit_indices:
+                xdata.to_csv(os.path.join("orbitz", "messenger-{:04d}.csv".format(i + orbit_index_offset)))
+                print("Orbit #{} complete".format(i + orbit_index_offset))
+            else:
+                print("Orbit #{} complete".format(i + orbit_index_offset))
 
     def prepare_data(self):
         self.mag_data = self.mag_data.groupby(level=0).last()
@@ -352,16 +363,16 @@ else:
 messenger_master = MessengerMaster()
 messenger_master.load_data(resolution, year, doy_start, doy_end)
 messenger_master.prepare_data()
-print(messenger_master.mag_data)
+
 
 class MessengerIllustrator:
     def checkout_magnitude_distro(self, data, checkout):
         bms = []
         for c in checkout:
             bms.append(np.array(np.sqrt(
-                data.loc[c[0] : c[1]]['BX_MSO']**2 +
-                data.loc[c[0] : c[1]]['BY_MSO']**2 +
-                data.loc[c[0] : c[1]]['BZ_MSO']**2)
+                data.loc[c[0]: c[1]]['BX_MSO'] ** 2 +
+                data.loc[c[0]: c[1]]['BY_MSO'] ** 2 +
+                data.loc[c[0]: c[1]]['BZ_MSO'] ** 2)
             ))
             bmx = bms[-1][~np.isnan(bms[-1])]
         if len(bms) > 0:
@@ -374,7 +385,8 @@ class MessengerIllustrator:
         plt.ylabel('$\log\,N$')
 
     def orbital_dynamics(self, data):
-        max_alt, min_alt = data.RHO.iloc[argrelextrema(data.RHO.values, np.greater)], data.RHO.iloc[argrelextrema(data.RHO.values, np.less)]
+        max_alt, min_alt = data.RHO.iloc[argrelextrema(data.RHO.values, np.greater)], data.RHO.iloc[
+            argrelextrema(data.RHO.values, np.less)]
         plt.xlabel("Дата")
         plt.figure(1).autofmt_xdate()
         plt.ylabel("Высота [км]")
@@ -394,14 +406,14 @@ class MessengerIllustrator:
 
         ax = plt.subplot()
         ax.plot(hgi_x, hgi_y)
-        ax.scatter(0,0, color='r', s=240)  # Position of the Sun
+        ax.scatter(0, 0, color='r', s=240)  # Position of the Sun
         plt.xlabel("HGI X [а.е.]")
         plt.ylabel("HGI Y [а.е.]")
         ax.set_aspect('equal', adjustable='box')
 
         ax = plt.subplot()
         ax.plot(hgi_x, hgi_z)
-        ax.scatter(0,0, color='r', s=240)  # Position of the Sun
+        ax.scatter(0, 0, color='r', s=240)  # Position of the Sun
         plt.xlabel("HGI X [а.е.]")
         plt.ylabel("HGI Z [а.е.]")
         ax.set_aspect('equal', adjustable='box')
@@ -410,30 +422,30 @@ class MessengerIllustrator:
         data['DELTA_BZ'] = np.append(np.abs(np.diff(data.BZ_MSO)), np.nan)
         plt.xlabel(r"$dB_Z$ [нТл]")
         plt.ylabel(r"$\log\,N$")
-        plt.hist(data[data['DELTA_BZ'] <100].DELTA_BZ, log=True, bins=100, normed=False);
+        plt.hist(data[data['DELTA_BZ'] < 100].DELTA_BZ, log=True, bins=100, normed=False);
 
-        zjumps = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42) & (np.abs(data["RXY"]/R_M > 1.0))]
-        zj = zjumps[(np.abs(zjumps['Z_MSO'])/R_M < 1.0)]
+        zjumps = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42) & (np.abs(data["RXY"] / R_M > 1.0))]
+        zj = zjumps[(np.abs(zjumps['Z_MSO']) / R_M < 1.0)]
         print(zj.shape)
-        plt.scatter(zj.X_MSO/R_M, zj.Y_MSO/R_M, color='r')
-        plt.scatter(0, 0, s=R_M*11, edgecolor='k', linewidth=2, zorder=0)
+        plt.scatter(zj.X_MSO / R_M, zj.Y_MSO / R_M, color='r')
+        plt.scatter(0, 0, s=R_M * 11, edgecolor='k', linewidth=2, zorder=0)
         plt.gca().set_aspect('equal', adjustable='box')
         plt.xlabel(r"$X_{MSO}\,[R_M$]")
         plt.ylabel(r"$Y_{MSO}\,[R_M$]")
 
-        zj = zjumps[(zjumps['Z_MSO']/R_M < 0.1 + z_displacement/R_M) &
-                    ((zjumps['Z_MSO']/R_M > -0.1 + z_displacement/R_M))]
+        zj = zjumps[(zjumps['Z_MSO'] / R_M < 0.1 + z_displacement / R_M) &
+                    ((zjumps['Z_MSO'] / R_M > -0.1 + z_displacement / R_M))]
         print(zj.shape)
-        plt.scatter(zj.X_MSO/R_M, zj.Y_MSO/R_M, color='r')
-        plt.scatter(0, 0, s=R_M*18, edgecolor='k', linewidth=2, zorder=0)
+        plt.scatter(zj.X_MSO / R_M, zj.Y_MSO / R_M, color='r')
+        plt.scatter(0, 0, s=R_M * 18, edgecolor='k', linewidth=2, zorder=0)
         plt.gca().set_aspect('equal', adjustable='box')
         plt.xlabel(r"$X_{MSM}\,[R_M$]")
         plt.ylabel(r"$Y_{MSM}\,[R_M$]")
 
         zj = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42) & (np.abs(data['Y_MSO']) < R_M)]
         print(zj.shape)
-        plt.scatter(zj.X_MSO/R_M, zj.Z_MSO/R_M, color='g', s=3) #, color='r')
-        plt.scatter(0, 0, s=R_M*7, edgecolor='k', zorder=0)
+        plt.scatter(zj.X_MSO / R_M, zj.Z_MSO / R_M, color='g', s=3)  # , color='r')
+        plt.scatter(0, 0, s=R_M * 7, edgecolor='k', zorder=0)
         plt.gca().set_aspect('equal', adjustable='box')
         plt.xlabel(r"$X_{MSO}\,[R_M$]")
         plt.ylabel(r"$Z_{MSO}\,[R_M$]")
@@ -483,7 +495,7 @@ class MessengerIllustrator:
         plt.scatter(zj.X_MSO / R_M, rho, marker="X", label=r"$D=%.2f\pm%.3fAU$" % (D, dD))
         xxx = np.arange(0, plt.ylim()[1] * 0.8, 0.05)
         plt.plot(func_paraboloid(xxx, *popt), xxx)
-        plt.scatter(0, 0, s=R_M*12, edgecolor='k', zorder=0, color='y')
+        plt.scatter(0, 0, s=R_M * 12, edgecolor='k', zorder=0, color='y')
         plt.gca().set_aspect('equal', adjustable='box')
         plt.legend()
         plt.xlabel(r"$X_{MSO}\,[R_M$]")
