@@ -76,6 +76,12 @@ class MessengerMaster(DataMaster):
             print("Resolution not available, using 60sec averages")
             resolution = 60
 
+        columns = [
+            'YEAR', 'DAY_OF_YEAR', 'HOUR', 'MINUTE', 'SECOND',
+            'TIME_TAG', 'NAVG', 'X_MSO', 'Y_MSO', 'Z_MSO', 'BX_MSO',
+            'BY_MSO', 'BZ_MSO', 'DBX_MSO', 'DBY_MSO', 'DBZ_MSO'
+        ]
+
         data_files = []
         path = os.path.join('full', "%02d" % resolution)
         for file in sorted(os.listdir(path)):
@@ -86,28 +92,15 @@ class MessengerMaster(DataMaster):
                 doy = int(file.split("_")[0].replace("MAGMSOSCIAVG" + xyear, ""), 10)
                 if (mindoy is None or doy >= mindoy) and (maxdoy is None or doy <= maxdoy):
                     print(os.path.join(path, file))
-                    data_files.append(pd.read_table(os.path.join(path, file), delim_whitespace=True, header=None))
+                    data_files.append(pd.read_table(os.path.join(path, file),
+                                                    delim_whitespace=True,
+                                                    header=None,
+                                                    names=columns,
+                                                    parse_dates={"DATE": ['YEAR', 'DAY_OF_YEAR', 'HOUR', 'MINUTE', 'SECOND']},
+                                                    date_parser=lambda year, day_of_year, hour, minute, second: datetime.strptime(f"{year}-{day_of_year}_{hour}:{minute}:{second}", "%Y-%j_%H:%M:%S.000")))
         print("Loaded", datetime.now())
         data = pd.concat(data_files, ignore_index=True)
         print("Concat", datetime.now())
-        data.columns = [
-            'YEAR', 'DAY_OF_YEAR', 'HOUR', 'MINUTE', 'SECOND',
-            'TIME_TAG', 'NAVG', 'X_MSO', 'Y_MSO', 'Z_MSO', 'BX_MSO',
-            'BY_MSO', 'BZ_MSO', 'DBX_MSO', 'DBY_MSO', 'DBZ_MSO'
-        ]
-
-        data['DATE'] = data.apply(lambda x:
-                                  datetime.strptime("%d-%03d_%02d:%02d:%02d" % (x.YEAR,
-                                                                                x.DAY_OF_YEAR,
-                                                                                x.HOUR,
-                                                                                x.MINUTE,
-                                                                                x.SECOND),
-                                                    "%Y-%j_%H:%M:%S"),
-                                  axis=1
-                                  )
-        print("dated", datetime.now())
-        data = data.drop(['YEAR', 'DAY_OF_YEAR', 'HOUR', 'MINUTE', 'SECOND', 'NAVG', 'TIME_TAG'], axis=1)
-        print("dropped", datetime.now())
         data.drop_duplicates(inplace=True)
         print("dedupped", datetime.now())
         data = data.set_index('DATE')
@@ -329,8 +322,6 @@ class MessengerMaster(DataMaster):
         print("dipole_field done", datetime.now())
         self.distances(self.mag_data)
         print("distances done", datetime.now())
-        self.mag_data.to_csv("mag_data.csv")
-        self.mercury_se.to_csv("mercury_se.csv")
         self.mag_data = pd.concat([self.mag_data, self.mercury_se], axis=1, join='inner')
         del self.mercury_se
         print("concat done", datetime.now())
