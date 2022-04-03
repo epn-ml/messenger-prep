@@ -5,7 +5,7 @@ import os, os.path
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from heliocoord import HelioCoord
+# from heliocoord import HelioCoord
 from io import StringIO
 from sys import argv, exit
 
@@ -48,6 +48,12 @@ z_displacement = 484
 broken_orbit_indices = [1587, 1589, 1590, 3565, 3686, 26, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 789, 957, 1033, 1740, 3732]
 orbit_index_offset = 12
 
+#- orbit files 12 thru 960 should each have an ID one less
+
+#- orbit files 3578 thru 3697 should each have an ID one less
+
+#- orbit files 3699 thru 4105 should each have an ID two less
+
 
 class DataMaster:
     def __init__(self):
@@ -68,7 +74,6 @@ class MessengerMaster(DataMaster):
         self.outlier_threshold = 550  # nT
         self.checkout = None
         self.mercury_se = None
-        self.mercury_hgi = None
 
     @staticmethod
     def load_messenger_data(resolution, year=None, mindoy=None, maxdoy=None):
@@ -91,7 +96,6 @@ class MessengerMaster(DataMaster):
                 xyear = file[12:14]
                 doy = int(file.split("_")[0].replace("MAGMSOSCIAVG" + xyear, ""), 10)
                 if (mindoy is None or doy >= mindoy) and (maxdoy is None or doy <= maxdoy):
-                    print(os.path.join(path, file))
                     data_files.append(pd.read_table(os.path.join(path, file),
                                                     delim_whitespace=True,
                                                     header=None,
@@ -162,8 +166,6 @@ class MessengerMaster(DataMaster):
         print("checkout done", datetime.now())
         self.mercury_se = self.load_mercury_horizons(resolution, year, mindoy, maxdoy)
         print("mercury_se done", datetime.now())
-        self.mercury_hgi = pd.read_table("mercury-pos-hgi.txt", delim_whitespace=True, engine='python')
-        print("mercury_hgi done", datetime.now())
 
     def filter_checkouts(self, data, checkout):
         payload_columns = ["BX_MSO", "BY_MSO", "BZ_MSO"]
@@ -375,6 +377,7 @@ class MessengerIllustrator:
         plt.xlabel('$|B|$')
         plt.ylabel('$\log\,N$')
 
+
     def orbital_dynamics(self, data):
         max_alt, min_alt = data.RHO.iloc[argrelextrema(data.RHO.values, np.greater)], data.RHO.iloc[
             argrelextrema(data.RHO.values, np.less)]
@@ -384,6 +387,7 @@ class MessengerIllustrator:
         plt.plot(max_alt, label='Высота апоцентра')
         plt.plot(min_alt, label='Высота перицентра')
         plt.legend()
+
 
     def mercury_orbit_hgi(self, data):
         start = 0
@@ -408,6 +412,7 @@ class MessengerIllustrator:
         plt.xlabel("HGI X [а.е.]")
         plt.ylabel("HGI Z [а.е.]")
         ax.set_aspect('equal', adjustable='box')
+
 
     def zjumps(self, data):
         data['DELTA_BZ'] = np.append(np.abs(np.diff(data.BZ_MSO)), np.nan)
@@ -440,6 +445,7 @@ class MessengerIllustrator:
         plt.gca().set_aspect('equal', adjustable='box')
         plt.xlabel(r"$X_{MSO}\,[R_M$]")
         plt.ylabel(r"$Z_{MSO}\,[R_M$]")
+
 
     def show_paraboloid(self, zj, target_phase):
         R1, gamma = 1., 1.
