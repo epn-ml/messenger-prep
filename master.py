@@ -5,22 +5,13 @@ import os, os.path
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-# from heliocoord import HelioCoord
 from io import StringIO
 from sys import argv, exit
 
 from scipy.optimize import curve_fit
 
-# from pylab import rcParams
 import matplotlib as mp
 import matplotlib.pyplot as plt
-
-# from matplotlib.dates import DateFormatter
-# import matplotlib.dates as mdates
-# import matplotlib.cm as cm
-# from matplotlib import dates
-# from matplotlib.ticker import AutoMinorLocator, LinearLocator, AutoLocator
-
 
 plt.style.use('fivethirtyeight')
 mp.rcParams['font.size'] = 22
@@ -330,6 +321,7 @@ class MessengerMaster(DataMaster):
         extrema, cosalpha = self.find_extrema(self.mag_data)
         self.mag_data["COSALPHA"] = cosalpha
         self.mag_data["EXTREMA"] = extrema
+        self.aberration(self.mag_data)
         self.save_orbits(self.mag_data)
 
 
@@ -381,11 +373,11 @@ class MessengerIllustrator:
     def orbital_dynamics(self, data):
         max_alt, min_alt = data.RHO.iloc[argrelextrema(data.RHO.values, np.greater)], data.RHO.iloc[
             argrelextrema(data.RHO.values, np.less)]
-        plt.xlabel("Дата")
+        plt.xlabel("Date")
         plt.figure(1).autofmt_xdate()
-        plt.ylabel("Высота [км]")
-        plt.plot(max_alt, label='Высота апоцентра')
-        plt.plot(min_alt, label='Высота перицентра')
+        plt.ylabel("Altitude [km]")
+        plt.plot(max_alt, label='Apoapsis altitude')
+        plt.plot(min_alt, label='Periapsis altitude')
         plt.legend()
 
 
@@ -498,188 +490,3 @@ class MessengerIllustrator:
         plt.xlabel(r"$X_{MSO}\,[R_M$]")
         plt.ylabel(r"$r\,[R_M$]")
         return zj
-#
-# #def func_paraboloid(X, R1, gamma):
-# #    res = np.sqrt(4*R1*(R1-X)/(gamma**2 + 1))
-# #    print(X[np.isnan(res)])
-# #    return res
-#
-# zj = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42)]
-# zj = zj[(np.abs(zj["RXY"]/R_M) > 1.0) & (np.abs(zj["RHO"]/R_M > 1.0))]
-# zj = zj[(np.abs(zj["Z_MSO"]/R_M) < 4.0)]
-#
-#
-#
-# # In disser
-# #bb1 = show_paraboloid(zj, -120)
-# #bb2 = show_paraboloid(zj, 20)
-# #xxx = np.arange(0, plt.ylim()[1]*0.75, 0.05)
-#
-#
-# #plt.plot(func_paraboloid(xxx, 2.0, 0.0), xxx, color='y')
-# #plt.plot(func_paraboloid(xxx, 1.2, 0.0), xxx, color='y')
-#
-# # [ 1.45485491 -0.43650047  2.18585846] 0.33
-# # [ 1.41877853 -0.28480692 -0.8116054 ] 0.45
-#
-#
-#
-# #def func_paraboloid(X, R1, gamma):
-# #    res = np.sqrt(4*R1*(R1-X)/(gamma**2 + 1))
-# #    print(X[np.isnan(res)])
-# #    return res
-#
-# R1, gamma =1., 1.
-# def func_paraboloid(rho, Rss, s):
-#     #gamma = -0.15
-#     res = Rss - (s**2 + 1)/(2*Rss)*rho**2
-#     #res = R1 - (s**2 + 1)/(2*R1)*rho**2
-#     #res = R1 - (s**2 + 1)/(4*R1)*rho**2     # Winslow
-#     if R1 < 1.0:
-#         res = [-9999]*res.shape[0]
-#     return res
-#
-#
-# zj = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42)]
-# zj = zj[(np.abs(zj["RXY"]/R_M) > 1.0) & (np.abs(zj["RHO"]/R_M > 1.0))]
-# zj = zj[(np.abs(zj["Z_MSO"]/R_M) < 4.0)]
-#
-#
-# def show_paraboloid(zj, target_phase):
-#     #zj = zj[np.abs(target_phase - zj.COSALPHA) < cos_spread]
-#
-#     # Only approximately true in this coord system
-#     target_phase *= np.pi/180
-#     zj = zj[np.abs(np.arctan2(zj.Y, zj.X) - target_phase) < 0.6]
-#
-#     rho = np.sqrt(zj.Y_MSO**2 + (zj.Z_MSO - z_displacement)**2)/R_M
-#     #R = np.sqrt(zj.X_MSO**2 + zj.Y_MSO**2 + (zj.Z_MSO - z_displacement)**2)/R_M
-#
-#     if False:
-#         rho = rho[zj.X_MSO < 2*R_M]
-#         zj = zj[zj.X_MSO < 2*R_M]
-#     zj = zj[rho < 4]
-#     rho = rho[rho < 4]
-#     zjt = zj.copy(deep=True)
-#     zj = zj[~((zjt.X_MSO/R_M < 0) & (rho < 2.0) )]
-#     rho = rho[~((zjt.X_MSO/R_M < 0) & (rho < 2.0) )]
-#     zjt = zj.copy(deep=True)
-#     zj = zj[~((zjt.X_MSO/R_M > 1) & (rho > 2.0) )]
-#     rho = rho[~((zjt.X_MSO/R_M > 1) & (rho > 2.0) )]
-#
-#     babs = np.sqrt(zj.BX_MSO**2 + zj.BY_MSO**2 + (zj.BZ_MSO)**2)
-#
-#     popt, pcov = curve_fit(func_paraboloid, rho, zj.X_MSO.values/R_M)
-#     perr = np.sqrt(np.diag(pcov))
-#     print(popt)
-#     dev = func_paraboloid(rho, *popt) - zj.X_MSO.values/R_M
-#     print(np.sum(dev.values**2)/dev.shape[0])
-#     print(zj.columns)
-#     D, dD = np.mean(zj.D/149597871), np.std(zj.D/149597871)
-#     plt.scatter(zj.X_MSO/R_M, rho, marker="X", label=r"$D=%.2f\pm%.3fAU$" % (D, dD), c=babs)
-#     xxx = np.arange(plt.ylim()[0], plt.ylim()[1], 0.05)
-#     plt.plot(func_paraboloid(xxx, *popt), xxx, 'r--')
-#     plt.title(r"$R_{1}=%.2f \quad s=%.2f \quad D=%.2f\pm%.3fAU$" % (popt[0], popt[1], D, dD))
-#     plt.scatter(0, 0, s=R_M*17, edgecolor='k', zorder=0)
-#     plt.gca().set_aspect('equal', adjustable='box')
-#     #plt.legend()
-#     plt.xlabel(r"$X_{MSO}\,[R_M$]");
-#     plt.ylabel(r"$r\,[R_M$]")
-#     return (zj.X_MSO/R_M, rho)
-#
-# #show_paraboloid(zj, 30.0);
-#
-# # [ 1.45485491 -0.43650047  2.18585846] 0.33   30
-# # [ 1.41877853 -0.28480692 -0.8116054 ] 0.45   -120
-#
-#
-# zj = data[(data['DELTA_BZ'] > 38) & (data['DELTA_BZ'] < 42) & \
-#           (np.abs(data['Y_MSO']/R_M) < 0.2) & (data['Z_MSO']/R_M > -1)]
-# """plt.scatter(zj.X_MSO/R_M, zj.Z_MSO/R_M, s=4, c=zj.index)
-# cb = plt.colorbar()
-# cb.ax.set_yticklabels(zj.index[::580])
-# plt.scatter(0, 0, s=R_M*72, edgecolor='k', zorder=0)
-# plt.gca().set_aspect('equal', adjustable='box')
-# plt.xlabel(r"$X_{MSO}\,[R_M$]");
-# plt.ylabel(r"$Z_{MSO}\,[R_M$]");"""
-#
-# #from mpl_toolkits.mplot3d import Axes3D
-# #from matplotlib.ticker import MaxNLocator
-#
-# x_mso=data['X_MSO']
-# y_mso=data['Y_MSO']
-# z_mso=data['Z_MSO']
-#
-# #fig = plt.figure()
-# #ax = fig.add_subplot(111, projection='3d')
-#
-# orbit_start=0
-# orbit_count=23
-# orbit_duration=727*60
-#
-# start, end = orbit_start*orbit_duration, orbit_duration*(orbit_start+orbit_count)
-#
-# X=x_mso[start:end]
-# Y=y_mso[start:end]
-# Z=z_mso[start:end]
-#
-# #ax.locator_params(axis='y', nbins=6)
-# #ax.locator_params(axis='x', nbins=6)
-# #ax.locator_params(axis='z', nbins=6)
-#
-#
-# # Fix 3D aspect ratio bug
-# #mid_x = (X.max()+X.min()) * 0.5
-# #mid_y = (Y.max()+Y.min()) * 0.5
-# #mid_z = (Z.max()+Z.min()) * 0.5
-# #max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max() / 2.0
-# """ax.set_xlim(mid_x - max_range, mid_x + max_range)
-# ax.set_ylim(mid_y - max_range, mid_y + max_range)
-# ax.set_zlim(mid_z - max_range, mid_z + max_range)
-# ax.set_aspect('equal', adjustable='box')"""
-#
-# # Plot the Hermean orbital plane
-# #x_plane=range(int(mid_x - max_range), int(mid_x + max_range), int(2*max_range/10))
-# #y_plane=range(int(mid_y - max_range), int(mid_y + max_range), int(2*max_range/10))
-# #xx, yy = np.meshgrid(x_plane, y_plane)
-# #zz = xx*0
-# #ax.plot_surface(xx, yy, zz, alpha=0.3)
-#
-# #ax.plot(cos_arrow_x, cos_arrow_y, color='black')
-# #ax.plot(-cos_arrow_x, -cos_arrow_y, color='black')
-# #ax.plot(X, Y, Z,  linewidth='1')
-#
-# # Plot the planet for reference
-# """ax.scatter(0, 0, 0, s=R_M, edgecolor='k', linewidth=2)
-#
-# ax.set_xlabel('\nMSO X [км]', linespacing=2.8)
-# ax.set_ylabel('\nMSO Y [км]', linespacing=2.8)
-# ax.set_zlabel('\nMSO Z [км]', linespacing=2.8)
-#
-# ax.view_init(elev=10., azim=60)
-# fig.canvas.draw()
-# ax.set_xticklabels(ax.get_xticklabels(), rotation=0,
-#                    verticalalignment='baseline',
-#                    horizontalalignment='center')
-# ax.set_yticklabels(ax.get_yticklabels(), rotation=0,
-#                    verticalalignment='baseline',
-#                    horizontalalignment='center')
-# """
-#
-#
-#
-# cos_spread = 0.3 #134 # 30 degrees either way
-#
-#
-#
-# nodes = find_nodes(True)
-#
-# duskdawn = nodes[nodes["TYPE"]==1]
-# coses = cosalpha[(~np.isnan(cosalpha.VALUE)) & (np.abs(cosalpha.VALUE) < 0.05)].index
-# duskdawn = duskdawn.index.intersection(coses)
-# print(duskdawn)
-#
-# def save_preprocessed(data, filename):
-#     data.to_csv("{}.csv".format(filename))
-#
-# save_preprocessed(data, argv[1]) # no doys, hack

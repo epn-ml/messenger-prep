@@ -4,7 +4,7 @@ BASE_URL='https://pds-ppi.igpp.ucla.edu/ditdos/download?id='
 PDS_ID='pds://PPI/MESS-E_V_H_SW-MAG-4-SUMM-CALIBRATED-V1.0/DATA/MSO'
 years=$(seq 2011 2015)
 
-mkdir -p full/{01,05,10,60,source}
+mkdir -p full/{01,05,10,60,source} orbit
 
 for y in $years; do
   wget "${BASE_URL}${PDS_ID}/${y}" -O full/source/${y}.zip
