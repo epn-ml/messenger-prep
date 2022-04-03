@@ -3,6 +3,7 @@ from time import sleep
 from sys import argv
 import calendar
 import telnetlib
+from datetime import datetime, timedelta
 
 class HelioCoord:
     def __init__(self, body, dt_start, dt_end, interval):
@@ -15,15 +16,30 @@ class HelioCoord:
         self.dt_end = dt_end
         self.interval = interval
 
-    def fetch(self):
+
+    def fetchall(self):
+        step = timedelta(seconds=86400)
+        xstart = datetime.strptime(self.dt_start, '%Y-%b-%d %H:%M')
+        final_end = datetime.strptime(self.dt_end, '%Y-%b-%d %H:%M')
+        while True:
+            xend = xstart + step
+            res = self.fetch(datetime.strftime(xstart, '%Y-%b-%d %H:%M'), datetime.strftime(xend, '%Y-%b-%d %H:%M'))
+            for line in res:
+                print("\t".join(line))
+            xstart = xend
+            if xstart >= final_end:
+                break
+
+
+    def fetch(self, dt_start, dt_end):
         commands = ['page',
                     self.body,
                     'E',
                     'V',
                     '@sun',
                     'eclip',
-                    self.dt_start,
-                    self.dt_end,
+                    dt_start,
+                    dt_end,
                     self.interval,
                     'n',
                     'J2000',
@@ -65,14 +81,14 @@ class HelioCoord:
             line1 = res[l].split()
             line2 = res[l + 1].split()
             line3 = res[l + 2].split()
-            final.append(["%sZ%s".format(line1[3], line1[4]),
+            final.append([f"{line1[3]}Z{line1[4]}",
                           line2[0], line2[1], line2[2],
                           line3[0], line3[1], line3[2]]
             )
         return final
 
 
-def __main__():
+def main():
     if len(argv) < 5:
         print("Usage: ./heliocoord.py Mercury|Jupiter|Saturn yyyy-Mon-ddZhh:mm yyyy-Mon-ddZhh:mm N[d|h|m]")
         print("Example: ./heliocoord.py Jupiter 1978-Apr-01Z00:00 1978-Apr-03Z15:00 10m")
@@ -83,9 +99,8 @@ def __main__():
     dt_start, dt_end = argv[2].replace("Z", " "), argv[3].replace("Z", " ")
     interval = argv[4]
     hc = HelioCoord(body, dt_start, dt_end, interval)
-    res = hc.fetch()
-    for line in res:
-        print("\t".join(line))
+    hc.fetchall()
 
 
-
+if __name__ == "__main__":
+    main()
