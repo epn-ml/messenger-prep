@@ -48,11 +48,6 @@ z_displacement = 484
 broken_orbit_indices = [1587, 1589, 1590, 3565, 3686, 26, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 789, 957, 1033, 1740, 3732]
 orbit_index_offset = 12
 
-#- orbit files 12 thru 960 should each have an ID one less
-
-#- orbit files 3578 thru 3697 should each have an ID one less
-
-#- orbit files 3699 thru 4105 should each have an ID two less
 
 
 class DataMaster:
@@ -286,16 +281,14 @@ class MessengerMaster(DataMaster):
         cosine_array.loc[i_to[-1]:]['VALUE'] = cosine[-1]
         return extrema, cosine_array
 
+
+#- orbit files 12 thru 960 should each have an ID one less
+#- orbit files 3578 thru 3697 should each have an ID one less
+#- orbit files 3699 thru 4105 should each have an ID two less
+
     def save_orbits(self, data):
         mask = data[data.EXTREMA == 2].index
-        xdata = data[:mask[0]]
         i = 0
-        if i not in broken_orbit_indices:
-            xdata.to_csv(os.path.join("orbitz", "messenger-{:04d}.csv".format(i+orbit_index_offset)))
-            print("Orbit #{} complete".format(i+orbit_index_offset))
-        else:
-            print("Orbit #{} complete".format(i+orbit_index_offset))
-
         for bounds in zip(mask[:-1], mask[1:]):
             i += 1
             diff = bounds[1] - bounds[0]
@@ -309,10 +302,17 @@ class MessengerMaster(DataMaster):
                 print(diff, bounds)
             xdata = data[bounds[0]:bounds[1]]
             if i not in broken_orbit_indices:
-                xdata.to_csv(os.path.join("orbitz", "messenger-{:04d}.csv".format(i + orbit_index_offset)))
-                print("Orbit #{} complete".format(i + orbit_index_offset))
+                j = i + orbit_index_offset
+                if j >= 12 and j <= 960:
+                  j -= 1
+                elif j >= 3578 and j <= 3697:
+                  j -= 1
+                elif j >= 3699:
+                  j -= 2
+                xdata.to_csv(os.path.join("orbit", "messenger-{:04d}.csv".format(j)))
+                print("Orbit #{} complete".format(j))
             else:
-                print("Orbit #{} complete".format(i + orbit_index_offset))
+                print("Orbit #{} complete".format(j))
 
     def prepare_data(self):
         self.mag_data = self.mag_data.groupby(level=0).last()
