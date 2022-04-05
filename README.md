@@ -43,9 +43,9 @@ Here:
 * DBX_MSO: Standard deviation of X axis magnetic field values in Mercury solar orbital (MSO) coordinates (nanoTesla)
 * DBY_MSO: Standard deviation of Y axis magnetic field values in Mercury solar orbital (MSO) coordinates (nanoTesla)
 * DBZ_MSO: Standard deviation of Z axis magnetic field values in Mercury solar orbital (MSO) coordinates (nanoTesla)
-* RHO_DIPOLE: `<ignore>`
-* PHI_DIPOLE: `<ignore>`
-* THETA_DIPOLE: `<ignore>`
+* RHO_DIPOLE: Radial distance of MESSENGER's position vector (km) wrt the position of the planetary magnetic dipole
+* PHI_DIPOLE: Polar angle of MESSENGER's position vector (km)
+* THETA_DIPOLE: Azimuthal angle of MESSENGER's position vector (km)
 * BABS_DIPOLE: Magnitude of the estimated planetary dipole field (nanoTesla)
 * BX_DIPOLE: X axis magnetic field value of the estimated planetary dipole field in Mercury solar orbital (MSO) coordinates (nanoTesla)
 * BY_DIPOLE: Y axis magnetic field value of the estimated planetary dipole field in Mercury solar orbital (MSO) coordinates (nanoTesla)
