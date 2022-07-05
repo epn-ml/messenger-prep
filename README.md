@@ -1,3 +1,8 @@
+## Link to prepared dataset:
+
+https://zenodo.org/record/6417492#.YsQsK9JByEL
+
+
 ## Introduction
 The goal of this project is to provide a framework for acquiring and pre-processing magnetic field data collected by the MESSENGER mission to Mercury in 2011-2015, and make this data suitable for analytical analysis and machine learning projects.
 
